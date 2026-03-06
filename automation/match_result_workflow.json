@@ -1,0 +1,88 @@
+{
+  "name": "Atlas Hoops - Match Recap Automation",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "supabase-match-finished",
+        "options": {}
+      },
+      "name": "Supabase Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [250, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{$node[\"Supabase Webhook\"].json[\"record\"][\"status\"]}}",
+              "value2": "finished"
+            }
+          ]
+        }
+      },
+      "name": "If Finished",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [450, 300]
+    },
+    {
+      "parameters": {
+        "resource": "chat",
+        "prompt": "Write an exciting match summary for Atlas Hoops vs {{$node[\"Supabase Webhook\"].json[\"record\"][\"opponent\"]}}. Final score was {{$node[\"Supabase Webhook\"].json[\"record\"][\"score_team\"]}} to {{$node[\"Supabase Webhook\"].json[\"record\"][\"score_opponent\"]}}."
+      },
+      "name": "Gemini AI Generator",
+      "type": "n8n-nodes-base.googleGemini",
+      "typeVersion": 1,
+      "position": [650, 200]
+    },
+    {
+      "parameters": {
+        "table": "news",
+        "columns": "title, content, category, slug",
+        "values": "={{$node[\"Supabase Webhook\"].json[\"record\"][\"opponent\"]}} Match Recap, {{$node[\"Gemini AI Generator\"].json[\"text\"]}}, Match Recap, match-recap-{{$node[\"Supabase Webhook\"].json[\"record\"][\"id\"]}}"
+      },
+      "name": "Supabase Insert Article",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [850, 200]
+    }
+  ],
+  "connections": {
+    "Supabase Webhook": {
+      "main": [
+        [
+          {
+            "node": "If Finished",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If Finished": {
+      "main": [
+        [
+          {
+            "node": "Gemini AI Generator",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gemini AI Generator": {
+      "main": [
+        [
+          {
+            "node": "Supabase Insert Article",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  }
+}
