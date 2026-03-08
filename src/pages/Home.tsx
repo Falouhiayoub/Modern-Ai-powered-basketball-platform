@@ -16,27 +16,50 @@ import { NewsletterSignup } from '@/features/fans/components/NewsletterSignup';
 import { motion } from 'framer-motion';
 
 export function Home() {
-  const { data: players, isLoading: playersLoading } = useQuery<Player[]>({
+  const isInvalidKey = import.meta.env.VITE_SUPABASE_ANON_KEY?.startsWith('sb_publishable_');
+
+  const { data: players, isLoading: playersLoading, error: playersError } = useQuery<Player[]>({
     queryKey: ['topPlayers'],
-    queryFn: () => playerService.getPlayers(),
+    queryFn: async () => {
+      if (isInvalidKey) {
+        throw new Error('Invalid Supabase Key: You are using a Stripe key instead of a Supabase Anon key.');
+      }
+      return await playerService.getPlayers();
+    },
   });
 
   const { data: matches, isLoading: matchesLoading } = useQuery<Match[]>({
     queryKey: ['homeMatches'],
-    queryFn: () => matchService.getUpcomingMatches(),
+    queryFn: async () => {
+      if (isInvalidKey) return [];
+      return await matchService.getUpcomingMatches();
+    },
   });
 
   const { data: news, isLoading: newsLoading } = useQuery<NewsArticle[]>({
     queryKey: ['homeNews'],
-    queryFn: () => newsService.getNews(3),
+    queryFn: async () => {
+      if (isInvalidKey) return [];
+      return await newsService.getNews(3);
+    },
   });
 
   return (
     <main className="basketball-mesh min-h-screen overflow-hidden">
       {/* Hero Section */}
-      <section className="relative pt-40 pb-32 px-4 sm:px-6 lg:px-8">
+      <section className="relative pt-40 pb-32 px-4 sm:px-6 lg:px-8 min-h-[90vh] flex items-center">
+        {/* Background Image with Overlay */}
+        <div className="absolute inset-0 z-0">
+          <img 
+            src="/images/hero-bg.png" 
+            alt="Basketball Arena" 
+            className="w-full h-full object-cover grayscale opacity-60"
+          />
+          <div className="absolute inset-0 bg-gradient-to-b from-zinc-950/80 via-zinc-950/50 to-zinc-950" />
+        </div>
+
         {/* Background Court Lines Decor */}
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[1200px] h-[1200px] opacity-10 pointer-events-none">
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[1200px] h-[1200px] opacity-10 pointer-events-none z-10">
           <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-full border-[2px] border-accent rounded-full -translate-y-1/2" />
           <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[400px] h-[800px] border-[2px] border-accent" />
         </div>
@@ -57,7 +80,22 @@ export function Home() {
             transition={{ delay: 0.1 }}
             className="text-7xl md:text-[10rem] font-black italic uppercase tracking-tighter leading-[0.85] text-white drop-shadow-2xl"
           >
-            Atlas <br /> <span className="text-accent text-glow">Hoops</span>
+            <motion.span
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.8, ease: "easeOut" }}
+              className="block"
+            >
+              Beyond
+            </motion.span>
+            <motion.span 
+              initial={{ opacity: 0, x: -50 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.4, duration: 0.8, ease: "easeOut" }}
+              className="text-accent text-glow"
+            >
+              The Arc
+            </motion.span>
           </motion.h1>
 
           <motion.p 
@@ -131,6 +169,15 @@ export function Home() {
             <div className="flex justify-center py-20">
               <Loader2 className="w-10 h-10 text-accent animate-spin" />
             </div>
+          ) : playersError ? (
+            <div className="glass-card p-12 text-center">
+              <p className="text-red-500 font-bold uppercase tracking-widest italic mb-2">Error loading athletes</p>
+              <p className="text-zinc-600 text-xs font-mono">{(playersError as any).message}</p>
+            </div>
+          ) : players?.length === 0 ? (
+            <div className="glass-card p-12 text-center">
+              <p className="text-zinc-500 font-bold italic uppercase tracking-widest text-sm">No active athletes found.</p>
+            </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-3 gap-12">
               {players?.slice(0, 3).map((player) => (
@@ -141,9 +188,19 @@ export function Home() {
         </section>
 
         {/* Newsletter Promo */}
-        <section className="relative">
-          <div className="absolute inset-0 bg-accent/5 rounded-[4rem] -skew-y-2 transform origin-left" />
-          <div className="relative grid grid-cols-1 lg:grid-cols-2 gap-16 items-center p-12 md:p-24">
+        <section className="relative overflow-hidden rounded-[4rem]">
+          {/* Background Image with Overlay */}
+          <div className="absolute inset-0 z-0 transform -skew-y-2 origin-left scale-110">
+            <img 
+              src="/images/court-crowd.jpg" 
+              alt="Fans in Arena" 
+              className="w-full h-full object-cover grayscale opacity-20"
+            />
+            <div className="absolute inset-0 bg-accent/10 mix-blend-multiply" />
+            <div className="absolute inset-0 bg-gradient-to-r from-zinc-950 via-zinc-950/80 to-transparent" />
+          </div>
+
+          <div className="relative z-10 grid grid-cols-1 lg:grid-cols-2 gap-16 items-center p-12 md:p-24">
             <div className="space-y-8">
               <div className="inline-block skew-tag">Join the Pride</div>
               <h2 className="text-5xl md:text-7xl leading-none">
