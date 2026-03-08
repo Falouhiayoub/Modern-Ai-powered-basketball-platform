@@ -10,10 +10,16 @@ import { motion } from 'framer-motion';
 export function Players() {
   const [searchTerm, setSearchTerm] = useState('');
   const [positionFilter, setPositionFilter] = useState('All');
+  const isInvalidKey = import.meta.env.VITE_SUPABASE_ANON_KEY?.startsWith('sb_publishable_');
 
   const { data: players, isLoading, error } = useQuery<Player[]>({
     queryKey: ['players'],
-    queryFn: () => playerService.getPlayers(),
+    queryFn: async () => {
+      if (isInvalidKey) {
+        throw new Error('Invalid Supabase Key: You are using a Stripe key instead of a Supabase Anon key.');
+      }
+      return await playerService.getPlayers();
+    },
   });
 
   const filteredPlayers = players?.filter((player) => {
@@ -68,8 +74,16 @@ export function Players() {
             <Loader2 className="w-12 h-12 text-accent animate-spin" />
           </div>
         ) : error ? (
-          <div className="glass-card p-12 text-center">
-            <p className="text-zinc-400 font-bold uppercase tracking-widest italic">Unable to load roster.</p>
+          <div className="glass-card p-20 text-center">
+            <p className="text-red-500 font-bold uppercase tracking-[0.2em] italic mb-4">Database Connection Error</p>
+            <p className="text-zinc-500 font-mono text-xs max-w-md mx-auto leading-relaxed">
+              {(error as any).message || 'Unable to fetch the team roster at this time.'}
+            </p>
+            {isInvalidKey && (
+              <div className="mt-8 p-4 bg-red-500/10 border border-red-500/20 rounded-xl text-red-400 text-sm">
+                Check your <strong>.env</strong> file. It contains a Stripe key instead of a Supabase key.
+              </div>
+            )}
           </div>
         ) : filteredPlayers?.length === 0 ? (
           <div className="glass-card p-12 text-center">
