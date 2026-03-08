@@ -1,9 +1,9 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { supabase } from '@/services/supabase';
 import { Button } from '@/components/ui/Button';
 import { SectionHeader } from '@/components/ui/SectionHeader';
-import { Trophy, Mail, Lock, Loader2, AlertCircle } from 'lucide-react';
+import { Trophy, Mail, Lock, Loader2, AlertCircle, ArrowLeft } from 'lucide-react';
 
 export function AdminLogin() {
   const [email, setEmail] = useState('');
@@ -33,15 +33,26 @@ export function AdminLogin() {
   };
 
   return (
-    <main className="min-h-screen pt-40 pb-20 px-4 flex flex-col items-center justify-center">
+    <main className="min-h-screen pt-40 pb-20 px-4 flex flex-col items-center justify-center relative">
+      {/* Back to Home Button */}
+      <div className="absolute top-12 left-1/2 -translate-x-1/2 md:left-12 md:translate-x-0">
+        <Link 
+          to="/" 
+          className="flex items-center space-x-2 text-zinc-500 hover:text-accent transition-colors group px-6 py-3 bg-zinc-900 border border-zinc-800 rounded-2xl"
+        >
+          <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
+          <span className="text-[10px] font-black uppercase tracking-widest">Back to Home</span>
+        </Link>
+      </div>
+
       <div className="w-full max-w-md space-y-12">
         <div className="text-center space-y-4">
-          <div className="inline-flex items-center justify-center w-20 h-20 bg-accent/20 rounded-3xl mb-4">
-            <Trophy className="w-10 h-10 text-accent" />
+          <div className="inline-flex items-center justify-center w-20 h-20 overflow-hidden bg-black border border-zinc-800 rounded-3xl mb-4 shadow-2xl">
+            <img src="/images/logo.jpg" alt="Atlas Hoops Logo" className="w-full h-full object-cover scale-125" />
           </div>
           <SectionHeader 
             title="Admin Login" 
-            subtitle="Secure access for Atlas Hoops club management." 
+            subtitle="Secure access for Beyond the Arc club management." 
             align="center"
             className="mb-0"
           />
