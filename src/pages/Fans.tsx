@@ -16,24 +16,49 @@ export function Fans() {
   const [hasVoted, setHasVoted] = useState(false);
 
   return (
-    <main className="pt-32 pb-20 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto space-y-24">
-      {/* Hero Section */}
-      <section className="text-center space-y-8 relative overflow-hidden bg-zinc-900 border border-zinc-800 rounded-[3rem] p-12 md:p-24 shadow-3xl">
-        <div className="absolute top-0 right-0 p-12 opacity-5 pointer-events-none">
-          <Users className="w-64 h-64 text-accent" />
-        </div>
-        <div className="relative z-10 space-y-6">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-accent/20 rounded-2xl mb-4">
-            <Star className="w-8 h-8 text-accent animate-pulse" />
+    <main className="relative min-h-screen bg-zinc-950 overflow-hidden">
+      {/* Page Background Image */}
+      <div className="fixed inset-0 z-0">
+        <img 
+          src="/images/newsimage1.jpg" 
+          alt="Fan Zone Background" 
+          className="w-full h-full object-cover opacity-50 grayscale"
+        />
+        <div className="absolute inset-0 bg-gradient-to-b from-zinc-950/90 via-zinc-950/40 to-zinc-950" />
+      </div>
+
+      <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-32 pb-20 space-y-24">
+        {/* Hero Section */}
+        <section className="text-center space-y-8 relative pt-20 pb-12">
+          <div className="absolute top-0 right-0 p-12 opacity-5 pointer-events-none">
+            <Users className="w-64 h-64 text-accent" />
           </div>
-          <h1 className="text-6xl md:text-8xl font-black italic uppercase tracking-tighter leading-none">
-            Fan <span className="text-accent">Zone</span>
-          </h1>
-          <p className="text-xl text-zinc-400 max-w-2xl mx-auto font-medium">
-            Your home for exclusive content, games, and community interaction. We win because of you.
-          </p>
-        </div>
-      </section>
+          <div className="relative z-10 space-y-6">
+            <motion.div 
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="inline-flex items-center justify-center w-16 h-16 bg-accent/20 rounded-2xl mb-4"
+            >
+              <Star className="w-8 h-8 text-accent animate-pulse" />
+            </motion.div>
+            <motion.h1 
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="text-7xl md:text-9xl font-black italic uppercase tracking-tighter leading-none text-white text-glow"
+            >
+              Fan <span className="text-accent">Zone</span>
+            </motion.h1>
+            <motion.p 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.2 }}
+              className="text-xl md:text-2xl text-zinc-300 max-w-3xl mx-auto font-medium leading-relaxed drop-shadow-lg"
+            >
+              Your home for exclusive content, games, and community interaction. <br className="hidden md:block" /> 
+              We win because of you.
+            </motion.p>
+          </div>
+        </section>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
         {/* Prediction Game */}
@@ -149,6 +174,7 @@ export function Fans() {
           </div>
         </section>
       </div>
-    </main>
-  );
+    </div>
+  </main>
+);
 }
