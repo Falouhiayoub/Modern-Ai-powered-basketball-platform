@@ -46,4 +46,36 @@ export const matchService = {
     if (error) throw error;
     return data;
   },
+
+  async createMatch(match: Database['public']['Tables']['matches']['Insert']) {
+    const { data, error } = await supabase
+      .from('matches')
+      .insert([match])
+      .select()
+      .single();
+    
+    if (error) throw error;
+    return data;
+  },
+
+  async updateMatch(id: string, updates: Database['public']['Tables']['matches']['Update']) {
+    const { data, error } = await supabase
+      .from('matches')
+      .update(updates)
+      .eq('id', id)
+      .select()
+      .single();
+    
+    if (error) throw error;
+    return data;
+  },
+
+  async deleteMatch(id: string) {
+    const { error } = await supabase
+      .from('matches')
+      .delete()
+      .eq('id', id);
+    
+    if (error) throw error;
+  },
 };

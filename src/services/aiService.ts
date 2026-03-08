@@ -41,17 +41,25 @@ export const aiService = {
 
       // 3. Initialize the model
       const model = genAI.getGenerativeModel({ 
-        model: 'gemini-1.5-flash',
+        model: 'gemini-2.5-flash',
         systemInstruction: context,
       });
 
       // 4. Start chat and get response
-      const chat = model.startChat({
-        history: chatHistory.map(h => ({
-          role: h.role,
-          parts: [{ text: h.parts }],
-        })),
-      });
+      const formattedHistory = chatHistory
+  .filter((h, index) => {
+    // ensure first message is always from user
+    if (index === 0 && h.role !== "user") return false;
+    return true;
+  })
+  .map(h => ({
+    role: h.role,
+    parts: [{ text: h.parts }],
+  }));
+
+const chat = model.startChat({
+  history: formattedHistory,
+});
 
       const result = await chat.sendMessage(userMessage);
       const response = await result.response;

@@ -42,4 +42,36 @@ export const playerService = {
     if (error) throw error;
     return data;
   },
+
+  async createPlayer(player: Database['public']['Tables']['players']['Insert']) {
+    const { data, error } = await supabase
+      .from('players')
+      .insert([player])
+      .select()
+      .single();
+    
+    if (error) throw error;
+    return data;
+  },
+
+  async updatePlayer(id: string, updates: Database['public']['Tables']['players']['Update']) {
+    const { data, error } = await supabase
+      .from('players')
+      .update(updates)
+      .eq('id', id)
+      .select()
+      .single();
+    
+    if (error) throw error;
+    return data;
+  },
+
+  async deletePlayer(id: string) {
+    const { error } = await supabase
+      .from('players')
+      .delete()
+      .eq('id', id);
+    
+    if (error) throw error;
+  },
 };
