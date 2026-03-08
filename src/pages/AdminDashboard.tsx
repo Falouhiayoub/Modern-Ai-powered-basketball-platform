@@ -37,8 +37,14 @@ export function AdminDashboard() {
   const { signOut, profile } = useAuthStore();
 
   const handleSignOut = async () => {
-    await signOut();
-    navigate('/login');
+    try {
+      await signOut();
+      navigate('/login', { replace: true });
+    } catch (error) {
+      console.error('Logout error:', error);
+      // Fallback: clear state and force navigate
+      navigate('/login', { replace: true });
+    }
   };
 
   return (
@@ -61,11 +67,11 @@ export function AdminDashboard() {
       )}>
         <div className="p-8 space-y-12">
           <div className="hidden md:flex items-center space-x-3 mb-12">
-            <div className="w-10 h-10 bg-accent rounded-xl flex items-center justify-center shadow-lg shadow-accent/20 shrink-0">
-              <Trophy className="w-6 h-6 text-zinc-50" />
+            <div className="w-10 h-10 overflow-hidden rounded-xl flex items-center justify-center shadow-lg shadow-accent/20 shrink-0 bg-black border border-zinc-800">
+              <img src="/images/logo.jpg" alt="Beyond the Arc Logo" className="w-full h-full object-cover scale-125" />
             </div>
             <div>
-              <h2 className="text-sm font-black italic uppercase tracking-widest text-zinc-50 leading-none">Atlas Hoops</h2>
+              <h2 className="text-sm font-black italic uppercase tracking-widest text-zinc-50 leading-none">Beyond the Arc</h2>
               <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest leading-none">Club Management</span>
             </div>
           </div>
