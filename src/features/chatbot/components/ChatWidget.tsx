@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { MessageCircle, X, Send, User, Bot, Trash2, Loader2 } from 'lucide-react';
+import { MessageCircle, X, Send, User, Trash2, Loader2, Zap } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/utils/cn';
 import { Button } from '@/components/ui/Button';
@@ -20,7 +20,7 @@ export function ChatWidget() {
   const [messages, setMessages] = useState<Message[]>([
     {
       id: '1',
-      text: "👋 Hi! I'm Atlas Bot. Ask me anything about the team, our players, or upcoming matches!",
+      text: "🏀 What's up, champ? Coach Arc here. Ready to hit the court? Ask me anything about the squad, our latest wins, or how to level up your game!",
       sender: 'bot',
       timestamp: new Date(),
     },
@@ -56,7 +56,15 @@ export function ChatWidget() {
         parts: msg.text,
       }));
 
-      const aiResponse = await aiService.generateChatResponse(userMessageText, history);
+      // Add timeout to prevent permanent loading
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('AI response timed out. Please try again.')), 30000)
+      );
+
+      const aiResponse = await Promise.race([
+        aiService.generateChatResponse(userMessageText, history),
+        timeoutPromise
+      ]) as string;
 
       const botMessage: Message = {
         id: (Date.now() + 1).toString(),
@@ -65,8 +73,15 @@ export function ChatWidget() {
         timestamp: new Date(),
       };
       setMessages((prev) => [...prev, botMessage]);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Chat Error:', error);
+      const errorMessage: Message = {
+        id: (Date.now() + 1).toString(),
+        text: "🚨 " + (error.message || "Coach Arc is catchin' his breath! Give me a second and ask again."),
+        sender: 'bot',
+        timestamp: new Date(),
+      };
+      setMessages((prev) => [...prev, errorMessage]);
     } finally {
       setLoading(false);
     }
@@ -115,10 +130,10 @@ export function ChatWidget() {
             <div className="p-6 bg-zinc-950 border-b border-zinc-800 flex justify-between items-center">
               <div className="flex items-center space-x-3">
                 <div className="w-10 h-10 bg-accent/20 rounded-xl flex items-center justify-center">
-                  <Bot className="w-6 h-6 text-accent" />
+                  <Zap className="w-6 h-6 text-accent fill-accent" />
                 </div>
                 <div>
-                  <h3 className="text-sm font-black uppercase italic tracking-widest text-zinc-50">Atlas AI Bot</h3>
+                  <h3 className="text-sm font-black uppercase italic tracking-widest text-zinc-50">Coach Arc AI</h3>
                   <div className="flex items-center space-x-1.5">
                     <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
                     <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Always Active</span>
@@ -149,7 +164,7 @@ export function ChatWidget() {
                     "w-8 h-8 rounded-lg flex items-center justify-center shrink-0 shadow-sm",
                     msg.sender === 'bot' ? "bg-accent/10 border border-accent/20" : "bg-zinc-800 border border-zinc-700"
                   )}>
-                    {msg.sender === 'bot' ? <Bot className="w-4 h-4 text-accent" /> : <User className="w-4 h-4 text-zinc-400" />}
+                    {msg.sender === 'bot' ? <Zap className="w-4 h-4 text-accent fill-accent" /> : <User className="w-4 h-4 text-zinc-400" />}
                   </div>
                   <div className={cn(
                     'p-4 rounded-2xl text-sm leading-relaxed font-medium shadow-sm',
@@ -168,7 +183,7 @@ export function ChatWidget() {
                   className="flex items-center space-x-3"
                 >
                   <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0 bg-accent/10 border border-accent/20">
-                    <Bot className="w-4 h-4 text-accent animate-bounce" />
+                    <Zap className="w-4 h-4 text-accent fill-accent animate-bounce" />
                   </div>
                   <div className="p-4 rounded-2xl bg-zinc-800/50 border border-zinc-800 rounded-bl-none">
                     <Loader2 className="w-4 h-4 text-accent animate-spin" />
