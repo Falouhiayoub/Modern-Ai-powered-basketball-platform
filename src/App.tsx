@@ -29,6 +29,7 @@ const MatchDetails = lazy(() => import('@/pages/MatchDetails').then(m => ({ defa
 const News = lazy(() => import('@/pages/News').then(m => ({ default: m.News })));
 const ArticlePage = lazy(() => import('@/pages/ArticlePage').then(m => ({ default: m.ArticlePage })));
 const Fans = lazy(() => import('@/pages/Fans').then(m => ({ default: m.Fans })));
+const Training = lazy(() => import('@/pages/Training').then(m => ({ default: m.Training })));
 const JoinTeam = lazy(() => import('@/pages/JoinTeam').then(m => ({ default: m.JoinTeam })));
 const Contact = lazy(() => import('@/pages/Contact').then(m => ({ default: m.Contact })));
 const AdminDashboard = lazy(() => import('@/pages/AdminDashboard').then(m => ({ default: m.AdminDashboard })));
@@ -80,6 +81,7 @@ function App() {
                   <Route path="/news" element={<News />} />
                   <Route path="/news/:id" element={<ArticlePage />} />
                   <Route path="/fans" element={<Fans />} />
+                  <Route path="/training" element={<Training />} />
                   <Route path="/join" element={<JoinTeam />} />
                   <Route path="/contact" element={<Contact />} />
                   <Route path="/login" element={<AdminLogin />} />
