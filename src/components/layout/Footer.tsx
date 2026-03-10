@@ -29,12 +29,12 @@ export function Footer() {
           {/* Brand Info */}
           <div className="space-y-8">
             <Link to="/" className="flex items-center space-x-3 group">
-              <div className="w-12 h-12 bg-zinc-900 rounded-2xl flex items-center justify-center border border-zinc-800 group-hover:border-accent transition-colors shadow-2xl">
-                <Trophy className="w-6 h-6 text-accent" />
+              <div className="w-12 h-12 overflow-hidden rounded-2xl flex items-center justify-center border border-zinc-800 group-hover:border-accent transition-colors shadow-2xl bg-black">
+                <img src="/images/logo.jpg" alt="Beyond the Arc Logo" className="w-full h-full object-cover scale-125" />
               </div>
               <div className="flex flex-col">
-                <span className="text-2xl font-black italic uppercase tracking-tighter leading-none text-white">Atlas</span>
-                <span className="text-[10px] font-black uppercase tracking-[0.3em] text-accent leading-none">Hoops</span>
+                <span className="text-2xl font-black italic uppercase tracking-tighter leading-none text-white">Beyond</span>
+                <span className="text-[10px] font-black uppercase tracking-[0.3em] text-accent leading-none">The Arc</span>
               </div>
             </Link>
             <p className="text-zinc-500 text-sm font-medium leading-relaxed max-w-xs">

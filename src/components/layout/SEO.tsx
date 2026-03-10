@@ -9,13 +9,13 @@ interface SEOProps {
 }
 
 export function SEO({
-  title = 'Atlas Hoops | Moroccan Basketball Club',
+  title = 'Beyond the Arc | Moroccan Basketball Club',
   description = 'Experience the power of Moroccan basketball. Join the fanbase of the most dynamic team in the kingdom.',
   image = '/og-image.jpg', // Placeholder for actual OG image
-  url = 'https://atlashoops.ma',
+  url = 'https://beyondthearc.ma',
   type = 'website',
 }: SEOProps) {
-  const siteTitle = title.includes('Atlas Hoops') ? title : `${title} | Atlas Hoops`;
+  const siteTitle = title.includes('Beyond the Arc') ? title : `${title} | Beyond the Arc`;
 
   return (
     <Helmet>
@@ -43,15 +43,15 @@ export function SEO({
         {JSON.stringify({
           "@context": "https://schema.org",
           "@type": "SportsTeam",
-          "name": "Atlas Hoops",
+          "name": "Beyond the Arc",
           "sport": "Basketball",
           "address": {
             "@type": "PostalAddress",
             "addressLocality": "Casablanca",
             "addressCountry": "MA"
           },
-          "url": "https://atlashoops.ma",
-          "logo": "https://atlashoops.ma/logo.png"
+          "url": "https://beyondthearc.ma",
+          "logo": "https://beyondthearc.ma/logo.png"
         })}
       </script>
     </Helmet>
