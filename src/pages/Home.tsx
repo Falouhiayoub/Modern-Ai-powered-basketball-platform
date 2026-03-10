@@ -36,7 +36,7 @@ export function Home() {
     },
   });
 
-  const { data: news, isLoading: newsLoading } = useQuery<NewsArticle[]>({
+  const { data: news, isLoading: newsLoading, error: newsError } = useQuery<NewsArticle[]>({
     queryKey: ['homeNews'],
     queryFn: async () => {
       if (isInvalidKey) return [];
@@ -231,6 +231,11 @@ export function Home() {
           {newsLoading ? (
             <div className="flex justify-center py-20">
               <Loader2 className="w-10 h-10 text-accent animate-spin" />
+            </div>
+          ) : newsError ? (
+            <div className="glass-card p-12 text-center">
+              <p className="text-red-500 font-bold uppercase tracking-widest italic mb-2">Error loading news</p>
+              <p className="text-zinc-600 text-xs font-mono">{(newsError as any).message}</p>
             </div>
           ) : news?.length === 0 ? (
              <div className="glass-card p-12 text-center">
