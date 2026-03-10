@@ -2,6 +2,8 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { SectionHeader } from '@/components/ui/SectionHeader';
 import { matchService } from '@/services/matchService';
 import { storageService } from '@/services/storageService';
+import { aiService } from '@/services/aiService';
+import { newsService } from '@/services/newsService';
 import type { Match } from '@/services/matchService';
 import { 
   Calendar, 
@@ -12,12 +14,12 @@ import {
   Trophy,
   Clock,
   MapPin,
-  ExternalLink,
   X,
   Check,
   Zap,
   Upload,
-  Camera
+  Camera,
+  Sparkles
 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { cn } from '@/utils/cn';
@@ -31,6 +33,7 @@ export function ManageMatches() {
   const [isDeleting, setIsDeleting] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
   const [mutationError, setMutationError] = useState<string | null>(null);
+  const [promotingId, setPromotingId] = useState<string | null>(null);
   const isInvalidKey = import.meta.env.VITE_SUPABASE_ANON_KEY?.startsWith('sb_publishable_');
 
   // Form State
@@ -41,11 +44,38 @@ export function ManageMatches() {
     status: 'upcoming',
     score_team: 0,
     score_opponent: 0,
-    stream_url: ''
+    stream_url: '',
+    is_home: true
   });
 
-  const { data: upcoming, isLoading: loadingUpcoming } = useQuery<Match[]>({ queryKey: ['adminUpcoming'], queryFn: () => matchService.getUpcomingMatches() });
-  const { data: past, isLoading: loadingPast } = useQuery<Match[]>({ queryKey: ['adminPast'], queryFn: () => matchService.getRecentResults() });
+  const { data: upcoming, isLoading: loadingUpcoming, error: upcomingError } = useQuery<Match[]>({ 
+    queryKey: ['adminUpcoming'], 
+    queryFn: async () => {
+      console.log('Fetching upcoming matches...', { isInvalidKey, supabaseUrl: import.meta.env.VITE_SUPABASE_URL });
+      if (isInvalidKey) return [];
+      try {
+        const matches = await matchService.getUpcomingMatches();
+        console.log('Upcoming matches fetched:', matches);
+        return matches;
+      } catch (err: any) {
+        console.error('Detailed Error fetching upcoming:', err);
+        throw err;
+      }
+    }
+  });
+  
+  const { data: past, isLoading: loadingPast, error: pastError } = useQuery<Match[]>({ 
+    queryKey: ['adminPast'], 
+    queryFn: async () => {
+      if (isInvalidKey) return [];
+      try {
+        return await matchService.getRecentResults();
+      } catch (err: any) {
+        console.error('Error fetching past:', err);
+        throw err;
+      }
+    }
+  });
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -118,6 +148,33 @@ export function ManageMatches() {
     }
   });
 
+  const handlePromoteToNews = async (match: Match) => {
+    setPromotingId(match.id);
+    try {
+      const summary = await aiService.generateMatchSummary(match);
+      const newsPayload = {
+        title: `MATCH REPORT: Beyond the Arc vs ${match.opponent}`,
+        content: summary,
+        image: match.stream_url || '',
+        category: 'Match Report',
+        slug: `match-report-${match.opponent.toLowerCase().replace(/\s+/g, '-')}-${Date.now()}`,
+        published_at: new Date().toISOString()
+      };
+      
+      await newsService.createArticle(newsPayload as any);
+      // Invalidate news queries so the news list updates
+      queryClient.invalidateQueries({ queryKey: ['adminNews'] });
+      queryClient.invalidateQueries({ queryKey: ['homeNews'] });
+      
+      alert("AI Match Report published to newsfeed successfully!");
+    } catch (err: any) {
+      console.error('Promotion error:', err);
+      alert("Failed to generate AI report: " + (err.message || 'Unknown error'));
+    } finally {
+      setPromotingId(null);
+    }
+  };
+
   const resetForm = () => {
     setFormData({
       date: new Date().toISOString().split('T')[0],
@@ -125,7 +182,9 @@ export function ManageMatches() {
       location: 'Atlas Arena, Casablanca',
       status: 'upcoming',
       score_team: 0,
-      score_opponent: 0
+      score_opponent: 0,
+      stream_url: '',
+      is_home: true
     });
     setEditingMatch(null);
   };
@@ -139,29 +198,48 @@ export function ManageMatches() {
       location: match.location,
       status: match.status || 'upcoming',
       score_team: match.score_team || 0,
-      score_opponent: match.score_opponent || 0
+      score_opponent: match.score_opponent || 0,
+      stream_url: match.stream_url || '',
+      is_home: match.is_home ?? true
     });
     setIsModalOpen(true);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setMutationError(null);
     
+    console.log('--- START SUBMISSION ---');
     try {
-      console.log('Submitting match data:', formData);
-      const payload = {
-        ...formData,
-        date: new Date(formData.date).toISOString()
+      if (!import.meta.env.VITE_SUPABASE_URL || !import.meta.env.VITE_SUPABASE_ANON_KEY) {
+        throw new Error("Supabase environment variables are missing! Check your .env file.");
+      }
+
+      // Ensure numeric values are actually numbers
+      const finalPayload = {
+        date: new Date(formData.date).toISOString(),
+        opponent: formData.opponent,
+        location: formData.location,
+        status: formData.status,
+        score_team: Number(formData.score_team) || 0,
+        score_opponent: Number(formData.score_opponent) || 0,
+        stream_url: formData.stream_url || null,
+        is_home: formData.is_home
       };
+
+      console.log('Prepared Payload:', finalPayload);
       
       if (editingMatch) {
-        updateMutation.mutate({ id: editingMatch.id, updates: payload });
+        console.log('Action: Updating match', editingMatch.id);
+        await updateMutation.mutateAsync({ id: editingMatch.id, updates: finalPayload as any });
       } else {
-        createMutation.mutate(payload as any);
+        console.log('Action: Creating new match');
+        await createMutation.mutateAsync(finalPayload as any);
       }
+      console.log('--- SUBMISSION SUCCESS ---');
     } catch (err: any) {
-      console.error('Submit error:', err);
-      alert('Error preparing data: ' + err.message);
+      console.error('Submit Error Caught:', err);
+      setMutationError(err.message || 'An unexpected error occurred while saving.');
     }
   };
 
@@ -176,7 +254,7 @@ export function ManageMatches() {
             className="mb-0"
           />
         </div>
-        <Button size="lg" className="shadow-xl shadow-accent/20" onClick={() => { setMutationError(null); setIsModalOpen(true); }}>
+        <Button size="lg" className="shadow-xl shadow-accent/20" onClick={() => { setMutationError(null); resetForm(); setIsModalOpen(true); }}>
           <Plus className="w-5 h-5 mr-2" />
           Schedule New Game
         </Button>
@@ -196,6 +274,11 @@ export function ManageMatches() {
                 <div className="py-20 flex flex-col items-center justify-center space-y-4">
                   <Loader2 className="w-12 h-12 text-accent animate-spin" />
                 </div>
+              ) : upcomingError ? (
+                <div className="p-12 text-center">
+                  <p className="text-red-500 font-black italic uppercase tracking-widest text-sm mb-2">Error loading matches</p>
+                  <p className="text-zinc-600 text-xs font-mono">{(upcomingError as any).message}</p>
+                </div>
               ) : (
                 <table className="w-full text-left border-collapse">
                   <thead>
@@ -207,7 +290,13 @@ export function ManageMatches() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-zinc-800/50">
-                    {upcoming?.map((match) => (
+                    {upcoming?.length === 0 ? (
+                      <tr>
+                        <td colSpan={4} className="px-10 py-20 text-center text-zinc-500 font-bold italic uppercase tracking-widest text-xs">
+                          No upcoming matches scheduled.
+                        </td>
+                      </tr>
+                    ) : upcoming?.map((match) => (
                       <tr key={match.id} className="hover:bg-zinc-800/30 transition-all group">
                         <td className="px-10 py-6">
                           <div className="space-y-1">
@@ -266,6 +355,11 @@ export function ManageMatches() {
                 <div className="py-20 flex flex-col items-center justify-center space-y-4">
                   <Loader2 className="w-12 h-12 text-accent animate-spin" />
                 </div>
+              ) : pastError ? (
+                <div className="p-12 text-center">
+                  <p className="text-red-500 font-black italic uppercase tracking-widest text-sm mb-2">Error loading results</p>
+                  <p className="text-zinc-600 text-xs font-mono">{(pastError as any).message}</p>
+                </div>
               ) : (
                 <table className="w-full text-left border-collapse">
                   <thead>
@@ -277,7 +371,13 @@ export function ManageMatches() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-zinc-800/50">
-                    {past?.map((match) => {
+                    {past?.length === 0 ? (
+                      <tr>
+                        <td colSpan={4} className="px-10 py-20 text-center text-zinc-500 font-bold italic uppercase tracking-widest text-xs">
+                          No results archived yet.
+                        </td>
+                      </tr>
+                    ) : past?.map((match) => {
                       const isWinner = match.score_team > match.score_opponent;
                       return (
                         <tr key={match.id} className="hover:bg-zinc-800/30 transition-all group">
@@ -302,6 +402,17 @@ export function ManageMatches() {
                             </span>
                           </td>
                           <td className="px-10 py-6 text-right space-x-2">
+                             <button 
+                              onClick={() => handlePromoteToNews(match)}
+                              disabled={!!promotingId}
+                              className={cn(
+                                "p-3 rounded-xl transition-all",
+                                promotingId === match.id ? "bg-accent/20 text-accent" : "text-zinc-600 hover:text-accent hover:bg-zinc-800"
+                              )}
+                              title="Generate AI News Report"
+                             >
+                              {promotingId === match.id ? <Loader2 className="w-5 h-5 animate-spin" /> : <Sparkles className="w-5 h-5" />}
+                             </button>
                              <button 
                               onClick={() => handleEdit(match)}
                               className="p-3 text-zinc-600 hover:text-accent transition-colors hover:bg-zinc-800 rounded-xl"
@@ -403,13 +514,39 @@ export function ManageMatches() {
                     <label className="text-[10px] font-black uppercase tracking-widest text-zinc-500 ml-4">Match Status</label>
                     <select
                       value={formData.status}
-                      onChange={e => setFormData({ ...formData, status: e.target.value })}
+                      onChange={e => setFormData({ ...formData, status: e.target.value as any })}
                       className="w-full bg-zinc-950 border border-zinc-800 rounded-xl md:rounded-2xl py-3 md:py-4 px-5 md:px-6 text-sm focus:border-accent outline-none transition-colors appearance-none"
                     >
                       <option value="upcoming">Upcoming</option>
                       <option value="finished">Finished</option>
                       <option value="live">Live</option>
                     </select>
+                  </div>
+
+                  <div className="space-y-2 md:space-y-4">
+                    <label className="text-[10px] font-black uppercase tracking-widest text-zinc-500 ml-4">Home Game?</label>
+                    <div className="flex items-center space-x-4 h-[52px] md:h-[68px] px-6 bg-zinc-950 border border-zinc-800 rounded-xl md:rounded-2xl">
+                      <button
+                        type="button"
+                        onClick={() => setFormData({ ...formData, is_home: true })}
+                        className={cn(
+                          "flex-1 py-2 text-[10px] font-black uppercase tracking-widest rounded-lg transition-all",
+                          formData.is_home ? "bg-accent text-white shadow-lg" : "text-zinc-500 hover:text-zinc-300"
+                        )}
+                      >
+                        Home
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setFormData({ ...formData, is_home: false })}
+                        className={cn(
+                          "flex-1 py-2 text-[10px] font-black uppercase tracking-widest rounded-lg transition-all",
+                          !formData.is_home ? "bg-accent text-white shadow-lg" : "text-zinc-500 hover:text-zinc-300"
+                        )}
+                      >
+                        Away
+                      </button>
+                    </div>
                   </div>
 
                   {formData.status === 'finished' && (
