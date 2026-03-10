@@ -275,6 +275,47 @@ export type Database = {
           created_at?: string
         }
       }
+      training_sessions: {
+        Row: {
+          id: string
+          title: string
+          description: string | null
+          day_of_week: string
+          start_time: string
+          end_time: string
+          location: string
+          category: string
+          is_public: boolean
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          title: string
+          description?: string | null
+          day_of_week: string
+          start_time: string
+          end_time: string
+          location?: string
+          category?: string
+          is_public?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          title?: string
+          description?: string | null
+          day_of_week?: string
+          start_time?: string
+          end_time?: string
+          location?: string
+          category?: string
+          is_public?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+      }
     }
     Views: {
       [_ in never]: never
