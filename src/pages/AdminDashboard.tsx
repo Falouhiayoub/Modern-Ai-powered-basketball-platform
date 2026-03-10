@@ -10,7 +10,8 @@ import {
   ChevronRight,
   Menu,
   X,
-  Trophy
+  Trophy,
+  Dumbbell
 } from 'lucide-react';
 import { useState } from 'react';
 import { cn } from '@/utils/cn';
@@ -20,12 +21,14 @@ import { DashboardHome } from './admin/DashboardHome';
 import { ManagePlayers } from './admin/ManagePlayers';
 import { ManageMatches } from './admin/ManageMatches';
 import { ManageNews } from './admin/ManageNews';
+import { ManageTraining } from './admin/ManageTraining';
 import { ViewTryouts } from './admin/ViewTryouts';
 
 const adminLinks = [
   { name: 'Overview', path: '/admin', icon: LayoutDashboard },
   { name: 'Players', path: '/admin/players', icon: Users },
   { name: 'Matches', path: '/admin/matches', icon: Calendar },
+  { name: 'Training', path: '/admin/training', icon: Dumbbell },
   { name: 'News', path: '/admin/news', icon: Newspaper },
   { name: 'Tryouts', path: '/admin/tryouts', icon: UserPlus },
 ];
@@ -55,7 +58,7 @@ export function AdminDashboard() {
           <Trophy className="w-6 h-6 text-accent" />
           <span className="font-black italic uppercase tracking-tighter text-sm">Atlas Admin</span>
         </div>
-        <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} className="p-2 text-zinc-400">
+        <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} className="p-2 text-zinc-400 cursor-pointer active:scale-95 transition-all">
           {isSidebarOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
         </button>
       </div>
@@ -115,7 +118,7 @@ export function AdminDashboard() {
             
             <button 
               onClick={handleSignOut}
-              className="w-full flex items-center space-x-4 p-4 rounded-2xl text-xs font-black uppercase tracking-widest text-red-500 hover:bg-red-500/10 transition-colors"
+              className="w-full flex items-center space-x-4 p-4 rounded-2xl text-xs font-black uppercase tracking-widest text-red-500 hover:bg-red-500/10 transition-all cursor-pointer active:scale-95"
             >
               <LogOut className="w-5 h-5" />
               <span>Sign Out</span>
@@ -131,6 +134,7 @@ export function AdminDashboard() {
           <Route path="players" element={<ManagePlayers />} />
           <Route path="matches" element={<ManageMatches />} />
           <Route path="news" element={<ManageNews />} />
+          <Route path="training" element={<ManageTraining />} />
           <Route path="tryouts" element={<ViewTryouts />} />
         </Routes>
       </div>
