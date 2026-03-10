@@ -1,7 +1,10 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { SectionHeader } from '@/components/ui/SectionHeader';
 import { newsService } from '@/services/newsService';
+import { aiService } from '@/services/aiService';
+import { matchService } from '@/services/matchService';
 import type { NewsArticle } from '@/services/newsService';
+import type { Match } from '@/services/matchService';
 import { 
   Newspaper, 
   Plus, 
@@ -15,10 +18,14 @@ import {
   X,
   Check,
   Camera,
-  Layout
+  Layout,
+  Languages,
+  Sparkles,
+  Zap
 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { useState } from 'react';
+import { cn } from '@/utils/cn';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuthStore } from '@/store/useAuthStore';
 
@@ -30,6 +37,8 @@ export function ManageNews() {
   const [editingArticle, setEditingArticle] = useState<NewsArticle | null>(null);
   const [isDeleting, setIsDeleting] = useState<string | null>(null);
   const [mutationError, setMutationError] = useState<string | null>(null);
+  const [translatingId, setTranslatingId] = useState<string | null>(null);
+  const [generatingReport, setGeneratingReport] = useState(false);
   const isInvalidKey = import.meta.env.VITE_SUPABASE_ANON_KEY?.startsWith('sb_publishable_');
 
   // Form State
@@ -41,9 +50,20 @@ export function ManageNews() {
     author_id: user?.id || ''
   });
 
-  const { data: articles, isLoading } = useQuery<NewsArticle[]>({ 
+  const { data: articles, isLoading, error: newsError } = useQuery<NewsArticle[]>({ 
     queryKey: ['adminNews'], 
-    queryFn: () => newsService.getNews(50) 
+    queryFn: async () => {
+      console.log('Fetching admin news...', { isInvalidKey });
+      if (isInvalidKey) return [];
+      try {
+        const data = await newsService.getNews(50);
+        console.log('Admin news fetched:', data);
+        return data;
+      } catch (err: any) {
+        console.error('Detailed Error fetching admin news:', err);
+        throw err;
+      }
+    }
   });
 
   const createMutation = useMutation({
@@ -101,6 +121,54 @@ export function ManageNews() {
     a.category.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
+  const handleTranslate = async (article: NewsArticle, lang: 'Arabic' | 'French' | 'English') => {
+    setTranslatingId(`${article.id}-${lang}`);
+    try {
+      const translatedContent = await aiService.translateContent(article.content, lang);
+      const translatedTitle = await aiService.translateContent(article.title, lang);
+      
+      await updateMutation.mutateAsync({ 
+        id: article.id, 
+        updates: { 
+          title: translatedTitle.replace(/^#\s*/, '').trim(), // Clean up potential markdown title
+          content: translatedContent 
+        } 
+      });
+      alert(`Article translated to ${lang} successfully!`);
+    } catch (err: any) {
+      alert(`Translation failed: ${err.message}`);
+    } finally {
+      setTranslatingId(null);
+    }
+  };
+
+  const handleGenerateReport = async () => {
+    try {
+      setGeneratingReport(true);
+      // Fetch latest finished match to summarize
+      const pastMatches = await matchService.getRecentResults();
+      if (!pastMatches?.[0]) {
+        alert("No finished matches found to summarize.");
+        return;
+      }
+      
+      const summary = await aiService.generateMatchSummary(pastMatches[0]);
+      
+      // Update form with AI content
+      setFormData({
+        ...formData,
+        title: `MATCH REPORT: Beyond the Arc vs ${pastMatches[0].opponent}`,
+        content: summary,
+        category: 'Match Report'
+      });
+      
+    } catch (err: any) {
+      alert(`Failed to generate report: ${err.message}`);
+    } finally {
+      setGeneratingReport(false);
+    }
+  };
+
   const resetForm = () => {
     setFormData({
       title: '',
@@ -125,12 +193,18 @@ export function ManageNews() {
     setIsModalOpen(true);
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (editingArticle) {
-      updateMutation.mutate({ id: editingArticle.id, updates: formData });
-    } else {
-      createMutation.mutate(formData as any);
+    setMutationError(null);
+    
+    try {
+      if (editingArticle) {
+        await updateMutation.mutateAsync({ id: editingArticle.id, updates: formData });
+      } else {
+        await createMutation.mutateAsync(formData as any);
+      }
+    } catch (err: any) {
+      setMutationError(err.message || 'Failed to publish story.');
     }
   };
 
@@ -145,7 +219,7 @@ export function ManageNews() {
             className="mb-0"
           />
         </div>
-        <Button size="lg" className="shadow-xl shadow-accent/20" onClick={() => { setMutationError(null); setIsModalOpen(true); }}>
+        <Button size="lg" className="shadow-xl shadow-accent/20" onClick={() => { setMutationError(null); resetForm(); setIsModalOpen(true); }}>
           <Plus className="w-5 h-5 mr-2" />
           Write New Story
         </Button>
@@ -170,6 +244,15 @@ export function ManageNews() {
             <div className="py-20 flex flex-col items-center justify-center space-y-4">
               <Loader2 className="w-12 h-12 text-accent animate-spin" />
               <p className="text-[10px] font-black uppercase tracking-widest text-zinc-500 italic">Syncing Newsroom...</p>
+            </div>
+          ) : newsError ? (
+            <div className="p-12 text-center">
+              <p className="text-red-500 font-black italic uppercase tracking-widest text-sm mb-2">Error loading newsroom</p>
+              <p className="text-zinc-600 text-xs font-mono">{(newsError as any).message}</p>
+            </div>
+          ) : filteredArticles?.length === 0 ? (
+            <div className="p-20 text-center text-zinc-500 font-bold italic uppercase tracking-widest text-xs">
+              No news articles found.
             </div>
           ) : (
             <table className="w-full text-left border-collapse">
@@ -213,6 +296,22 @@ export function ManageNews() {
                       </div>
                     </td>
                     <td className="px-10 py-6 text-right space-x-2">
+                       <div className="inline-flex bg-zinc-950 p-1 rounded-xl mr-2">
+                         {['Arabic', 'French', 'English'].map((lang) => (
+                           <button
+                            key={lang}
+                            disabled={!!translatingId}
+                            onClick={() => handleTranslate(article, lang as any)}
+                            className={cn(
+                              "p-2 text-[8px] font-black uppercase tracking-widest rounded-lg hover:bg-zinc-800 transition-all",
+                              translatingId === `${article.id}-${lang}` ? "text-accent" : "text-zinc-600"
+                            )}
+                            title={`Translate to ${lang}`}
+                           >
+                            {translatingId === `${article.id}-${lang}` ? <Loader2 className="w-3 h-3 animate-spin" /> : lang.substring(0, 2)}
+                           </button>
+                         ))}
+                       </div>
                        <button className="p-3 text-zinc-600 hover:text-accent transition-colors hover:bg-zinc-800 rounded-xl">
                         <Eye className="w-5 h-5" />
                        </button>
@@ -247,19 +346,38 @@ export function ManageNews() {
               className="relative w-full max-w-4xl bg-zinc-900 border border-zinc-800 rounded-[2rem] md:rounded-[3rem] shadow-3xl overflow-hidden max-h-[90vh] flex flex-col"
             >
               <div className="p-6 md:p-12 overflow-y-auto custom-scrollbar">
-                <div className="flex justify-between items-center mb-8 md:mb-12">
-                  <div className="flex items-center space-x-4">
-                    <div className="w-10 h-10 md:w-12 md:h-12 bg-accent/20 rounded-xl md:rounded-2xl flex items-center justify-center">
-                      <Layout className="w-5 h-5 md:w-6 md:h-6 text-accent" />
+                  <div className="flex justify-between items-center mb-8 md:mb-12">
+                    <div className="flex items-center space-x-4">
+                      <div className="w-10 h-10 md:w-12 md:h-12 bg-accent/20 rounded-xl md:rounded-2xl flex items-center justify-center">
+                        <Layout className="w-5 h-5 md:w-6 md:h-6 text-accent" />
+                      </div>
+                      <h2 className="text-2xl md:text-3xl font-black italic uppercase tracking-tighter text-white">
+                        {editingArticle ? 'Edit Article' : 'Write New Story'}
+                      </h2>
                     </div>
-                    <h2 className="text-2xl md:text-3xl font-black italic uppercase tracking-tighter text-white">
-                      {editingArticle ? 'Edit Article' : 'Write New Story'}
-                    </h2>
+                    
+                    {!editingArticle && (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        disabled={generatingReport}
+                        onClick={handleGenerateReport}
+                        className="bg-accent/10 border-accent/20 text-accent hover:bg-accent hover:text-white transition-all group shrink-0"
+                      >
+                        {generatingReport ? (
+                          <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                        ) : (
+                          <Sparkles className="w-4 h-4 mr-2 group-hover:scale-125 transition-transform" />
+                        )}
+                        <span className="text-[10px] font-black uppercase tracking-widest italic">AI Match Report</span>
+                      </Button>
+                    )}
+                    
+                    <button onClick={() => { setIsModalOpen(false); setMutationError(null); }} className="p-2 md:p-3 bg-zinc-800 hover:bg-zinc-700 rounded-xl md:rounded-2xl transition-colors shrink-0">
+                      <X className="w-5 h-5" />
+                    </button>
                   </div>
-                  <button onClick={() => { setIsModalOpen(false); setMutationError(null); }} className="p-2 md:p-3 bg-zinc-800 hover:bg-zinc-700 rounded-xl md:rounded-2xl transition-colors shrink-0">
-                    <X className="w-5 h-5" />
-                  </button>
-                </div>
 
                 {mutationError && (
                   <div className="mb-8 p-6 bg-red-500/10 border border-red-500/20 rounded-2xl flex items-start space-x-4">
