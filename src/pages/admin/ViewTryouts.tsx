@@ -17,16 +17,26 @@ import { cn } from '@/utils/cn';
 export function ViewTryouts() {
   const [searchTerm, setSearchTerm] = useState('');
   
-  const { data: applications, isLoading } = useQuery<any[]>({ 
+  const isInvalidKey = import.meta.env.VITE_SUPABASE_ANON_KEY?.startsWith('sb_publishable_');
+  
+  const { data: applications, isLoading, error: tryoutsError } = useQuery<any[]>({ 
     queryKey: ['adminTryouts'], 
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('tryouts')
-        .select('*')
-        .order('created_at', { ascending: false });
-      
-      if (error) throw error;
-      return data;
+      console.log('Fetching admin tryouts...', { isInvalidKey });
+      if (isInvalidKey) return [];
+      try {
+        const { data, error } = await supabase
+          .from('tryouts')
+          .select('*')
+          .order('created_at', { ascending: false });
+        
+        if (error) throw error;
+        console.log('Admin tryouts fetched:', data);
+        return data;
+      } catch (err: any) {
+        console.error('Detailed Error fetching tryouts:', err);
+        throw err;
+      }
     }
   });
 
@@ -67,6 +77,15 @@ export function ViewTryouts() {
             <div className="py-20 flex flex-col items-center justify-center space-y-4">
               <Loader2 className="w-12 h-12 text-accent animate-spin" />
               <p className="text-[10px] font-black uppercase tracking-widest text-zinc-500 italic">Scanning Applications...</p>
+            </div>
+          ) : tryoutsError ? (
+            <div className="p-12 text-center">
+              <p className="text-red-500 font-black italic uppercase tracking-widest text-sm mb-2">Error loading applications</p>
+              <p className="text-zinc-600 text-xs font-mono">{(tryoutsError as any).message}</p>
+            </div>
+          ) : filteredApps?.length === 0 ? (
+            <div className="p-20 text-center text-zinc-500 font-bold italic uppercase tracking-widest text-xs">
+              No recruitment applications found.
             </div>
           ) : (
             <table className="w-full text-left border-collapse">
