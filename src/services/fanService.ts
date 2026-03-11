@@ -29,6 +29,27 @@ export const fanService = {
       .single();
     
     if (error) throw error;
+
+    // Trigger n8n Webhook
+    const webhookUrl = import.meta.env.VITE_N8N_CONTACT_WEBHOOK;
+    if (webhookUrl) {
+      try {
+        await fetch(webhookUrl.trim(), {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            name: senderName,
+            email: senderEmail,
+            subject: subject || 'No Subject',
+            message: content,
+            timestamp: new Date().toISOString()
+          })
+        });
+      } catch (err) {
+        console.error('Failed to trigger contact webhook:', err);
+      }
+    }
+
     return data;
   },
 
