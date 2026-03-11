@@ -78,4 +78,25 @@ export const matchService = {
     
     if (error) throw error;
   },
+
+  async triggerN8nSync(match: Match) {
+    const webhookUrl = import.meta.env.VITE_N8N_MATCH_WEBHOOK;
+    if (!webhookUrl) throw new Error("n8n Webhook URL not configured in .env");
+
+    const response = await fetch(webhookUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        record: match,
+        type: 'UPDATE',
+        table: 'matches',
+        schema: 'public'
+      })
+    });
+
+    if (!response.ok) {
+      throw new Error(`n8n Sync failed: ${response.statusText}`);
+    }
+    return true;
+  }
 };
