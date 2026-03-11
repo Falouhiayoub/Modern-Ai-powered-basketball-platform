@@ -21,6 +21,16 @@ export function Training() {
 
   return (
     <main className="relative min-h-screen bg-zinc-950 overflow-hidden">
+      {/* Page Background Image */}
+      <div className="fixed inset-0 z-0">
+        <img 
+          src="/images/tarining.jpg" 
+          alt="Training Background" 
+          className="w-full h-full object-cover opacity-50 grayscale"
+        />
+        <div className="absolute inset-0 bg-gradient-to-b from-zinc-950/80 via-zinc-950/40 to-zinc-950" />
+      </div>
+
       {/* Background Decor */}
       <div className="fixed inset-0 z-0 pointer-events-none">
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[1000px] h-[1000px] bg-accent/5 rounded-full blur-[120px]" />
