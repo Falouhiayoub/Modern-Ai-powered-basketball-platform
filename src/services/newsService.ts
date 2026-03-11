@@ -16,11 +16,18 @@ export const newsService = {
   },
 
   async getArticleBySlug(slug: string) {
-    const { data, error } = await supabase
-      .from('news')
-      .select('*')
-      .eq('slug', slug)
-      .single();
+    // Try to fetch by slug first, if it fails or looks like a UUID, try by ID
+    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(slug);
+    
+    let query = supabase.from('news').select('*');
+    
+    if (isUuid) {
+      query = query.eq('id', slug);
+    } else {
+      query = query.eq('slug', slug);
+    }
+
+    const { data, error } = await query.single();
     
     if (error) throw error;
     return data;
